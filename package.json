@@ -1,0 +1,23 @@
+{
+  "name": "apinodefastifymongo",
+  "version": "1.0.0",
+  "description": "First API with Fastify and Node",
+  "main": "src/server.js",
+  "type": "module",
+  "scripts": {
+    "dev": "node --watch ./src/server.js"
+  },
+  "keywords": [],
+  "author": {
+    "name": "Ícaro Carvalho",
+    "github": "https://github.com/icarovscarvalho"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "@fastify/cors": "^11.2.0",
+    "@fastify/swagger": "^9.6.1",
+    "@fastify/swagger-ui": "^5.2.3",
+    "fastify": "^5.6.2",
+    "pino-pretty": "^13.1.3"
+  }
+}

@@ -1,0 +1,235 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "API de Posts",
+    "version": "1.0.0",
+    "description": "API simples para criação de posts, comentários, likes e exclusão."
+  },
+  "servers": [
+    {
+      "url": "http://localhost:3333"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "AuthorizationHeader": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "Authorization"
+      }
+    },
+    "schemas": {
+      "Comment": {
+        "type": "object",
+        "properties": {
+          "owner": { "type": "string" },
+          "content": { "type": "string" },
+          "date": { "type": "string" }
+        }
+      },
+      "Post": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer" },
+          "owner": { "type": "string" },
+          "title": { "type": "string" },
+          "content": { "type": "string" },
+          "date": { "type": "string" },
+          "comments": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/Comment" }
+          },
+          "likes": {
+            "type": "array",
+            "items": { "type": "string" }
+          }
+        }
+      }
+    }
+  },
+  "security": [
+    {
+      "AuthorizationHeader": []
+    }
+  ],
+  "paths": {
+    "/posts": {
+      "get": {
+        "summary": "Listar todos os posts",
+        "security": [
+          { "AuthorizationHeader": [] }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lista de posts",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/Post" }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Criar um novo post",
+        "security": [
+          { "AuthorizationHeader": [] }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["username", "title", "content"],
+                "properties": {
+                  "username": { "type": "string" },
+                  "title": { "type": "string" },
+                  "content": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Post criado",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Post" }
+              }
+            }
+          }
+        }
+      }
+    },
+
+    "/posts/{id}/comment": {
+      "post": {
+        "summary": "Criar comentário em um post",
+        "security": [
+          { "AuthorizationHeader": [] }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["username", "content"],
+                "properties": {
+                  "username": { "type": "string" },
+                  "content": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Comentário criado",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Post" }
+              }
+            }
+          },
+          "404": {
+            "description": "Post não encontrado"
+          }
+        }
+      }
+    },
+
+    "/posts/{id}/like": {
+      "patch": {
+        "summary": "Dar like ou remover like (toggle)",
+        "security": [
+          { "AuthorizationHeader": [] }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["username"],
+                "properties": {
+                  "username": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Like atualizado",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Post" }
+              }
+            }
+          },
+          "404": {
+            "description": "Post não encontrado"
+          }
+        }
+      }
+    },
+
+    "/posts/{id}": {
+      "delete": {
+        "summary": "Deletar um post",
+        "security": [
+          { "AuthorizationHeader": [] }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["username"],
+                "properties": {
+                  "username": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": { "description": "Post deletado" },
+          "400": { "description": "Usuário não é o dono do post" },
+          "404": { "description": "Post não encontrado" }
+        }
+      }
+    }
+  }
+}
