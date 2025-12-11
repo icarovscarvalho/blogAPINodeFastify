@@ -2,9 +2,14 @@ import Fastify from "fastify";
 import cors from "@fastify/cors"
 import swagger from '@fastify/swagger'
 import swaggerUI from '@fastify/swagger-ui'
+import swaggerJSON from "./docs/swagger.json" assert { type: "json" };
 
 import { postsRoutes } from "./routes/posts.js";
-import swaggerJSON from "./docs/swagger.json" assert { type: "json" };
+import { connectDB } from "./db/connect.js";
+import dotenv from 'dotenv'
+
+dotenv.config()
+connectDB()
 
 const app = Fastify({
   logger: {

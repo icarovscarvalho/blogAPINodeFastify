@@ -1,37 +1,47 @@
 import { isAuth } from '../middlewares/is-auth.js'
-import { posts } from '../db/posts.js'
+import { PostModel } from '../models/Post.js'
+import mongoose from 'mongoose'
 
 export async function postsRoutes(app) {
-  app.get('/posts', { onRequest: [isAuth] },(request, reply) => {
-    return reply.status(200).send(posts)
+
+  // ================================
+  // GET ALL POSTS
+  // ================================
+  app.get('/posts', { onRequest: [isAuth] }, async (request, reply) => {
+    const allPosts = await PostModel.find().sort({ date: -1 })
+    return reply.status(200).send(allPosts)
   })
 
-  app.post('/posts', { onRequest: [isAuth] },(request, reply) => {
+  // ================================
+  // CREATE POST
+  // ================================
+  app.post('/posts', { onRequest: [isAuth] }, async (request, reply) => {
     const { username, title, content } = request.body
 
-    const post = {
-      id: posts.length + 1,
+    const newPost = await PostModel.create({
       owner: username,
       title,
       content,
       date: new Date().toISOString(),
       comments: [],
       likes: []
-    }
+    })
 
-    posts.push(post)
-
-    return reply.status(200).send(posts)
+    return reply.status(201).send(newPost)
   })
 
-  app.post('/posts/:id/comment', { onRequest: [isAuth] },(request, reply) => {
+  // ================================
+  // ADD COMMENT
+  // ================================
+  app.post('/posts/:id/comment', { onRequest: [isAuth] }, async (request, reply) => {
     const { id } = request.params
 
-    const postIndex = posts.findIndex(post => post.id === +id)
-
-    if(postIndex === -1) {
-      return reply.status(404).send({ message: "Post not found" })
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return reply.status(400).send({ message: "Invalid post ID" })
     }
+
+    const post = await PostModel.findById(id)
+    if (!post) return reply.status(404).send({ message: "Post not found" })
 
     const { username, content } = request.body
 
@@ -41,52 +51,60 @@ export async function postsRoutes(app) {
       date: new Date().toISOString(),
     }
 
-    posts[postIndex].comments.push(comment)
+    post.comments.push(comment)
+    await post.save()
 
-    return reply.status(200).send(posts[postIndex])
+    return reply.status(200).send(post)
   })
 
-  app.patch('/posts/:id/like', { onRequest: [isAuth] },(request, reply) => {
+  // ================================
+  // LIKE / DISLIKE POST
+  // ================================
+  app.patch('/posts/:id/like', { onRequest: [isAuth] }, async (request, reply) => {
     const { id } = request.params
-
-    const postIndex = posts.findIndex(post => post.id === +id)
-
-    if(postIndex === -1) {
-      return reply.status(404).send({ message: "Post not found" })
-    }
-
     const { username } = request.body
 
-    const likeIndex = posts[postIndex].likes.findIndex(item => item === username)
-
-    if(likeIndex >= 0) {
-      posts[postIndex].likes.splice(likeIndex, 1)
-
-      return reply.status(200).send(posts[postIndex])
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return reply.status(400).send({ message: "Invalid post ID" })
     }
 
-    posts[postIndex].likes.push(username)
+    const post = await PostModel.findById(id)
+    if (!post) return reply.status(404).send({ message: "Post not found" })
 
-    return reply.status(200).send(posts[postIndex])
+    const alreadyLiked = post.likes.includes(username)
+
+    if (alreadyLiked) {
+      // remove like
+      post.likes = post.likes.filter(user => user !== username)
+    } else {
+      // add like
+      post.likes.push(username)
+    }
+
+    await post.save()
+
+    return reply.status(200).send(post)
   })
 
-  app.delete('/posts/:id', { onRequest: [isAuth] },(request, reply) => {
+  // ================================
+  // DELETE POST (only owner)
+  // ================================
+  app.delete('/posts/:id', { onRequest: [isAuth] }, async (request, reply) => {
     const { id } = request.params
-
-    const postIndex = posts.findIndex(post => post.id === +id)
-
-    if(postIndex === -1) {
-      return reply.status(404).send({ message: "Post not found" })
-    }
-
     const { username } = request.body
 
-    if(username !== posts[postIndex].owner) {
-      return reply.status(400).send({ message: "Currently user isn't the post owner!"})
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return reply.status(400).send({ message: "Invalid post ID" })
     }
 
-    posts.splice(postIndex, 1)
+    const post = await PostModel.findById(id)
+    if (!post) return reply.status(404).send({ message: "Post not found" })
 
+    if (post.owner !== username) {
+      return reply.status(403).send({ message: "User is not the owner of this post" })
+    }
+
+    await PostModel.findByIdAndDelete(id)
     return reply.status(204).send()
   })
 }
